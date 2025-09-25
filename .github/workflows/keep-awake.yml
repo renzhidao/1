@@ -1,0 +1,44 @@
+name: HF Space Keep-Alive (API)
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"  # 每30分钟一次（足够安全）
+  workflow_dispatch:        # 需要可手动点一下也可以
+
+env:
+  SPACE_URL: "https://your-username-your-space.hf.space"  # ← 改成你的 Space 地址
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wake by API
+        run: |
+          URL="${SPACE_URL%/}"
+          UA="HF-Space-KeepAlive/1.0"
+
+          # 随机0-60秒抖动，避免过于规律
+          sleep $((RANDOM % 60))
+
+          # 依次尝试多个端点，任一成功即视为已唤醒
+          for EP in "/" "/health" "/ping"; do
+            CODE=$(curl -sS -o /dev/null -w "%{http_code}" -A "$UA" --max-time 30 "$URL$EP" || echo "000")
+            echo "$URL$EP -> HTTP $CODE"
+            case "$CODE" in
+              200|201|202|204|301|302|304|404) echo "OK"; exit 0 ;;
+              503|000) sleep 10 ;;  # 冷启动中，稍等
+            esac
+          done
+
+          # 再重试3次（大概率此时已在启动）
+          for i in 1 2 3; do
+            sleep 15
+            CODE=$(curl -sS -o /dev/null -w "%{http_code}" -A "$UA" --max-time 60 "$URL" || echo "000")
+            echo "Retry $i -> HTTP $CODE"
+            case "$CODE" in
+              200|201|202|204|301|302|304|404) exit 0 ;;
+            esac
+          done
+
+          # 不标红，避免打扰
+          exit 0
