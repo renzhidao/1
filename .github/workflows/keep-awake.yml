@@ -6,7 +6,7 @@ on:
   workflow_dispatch:        # 需要可手动点一下也可以
 
 env:
-  SPACE_URL: "https://your-username-your-space.hf.space"  # ← 改成你的 Space 地址
+  SPACE_URL: "https://huggingface.co/spaces/1oscon/jy"  # ← 改成你的 Space 地址
 
 jobs:
   ping:
